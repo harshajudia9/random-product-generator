@@ -1,11 +1,6 @@
-import { PassThrough } from "stream";
-import { renderToPipeableStream } from "react-dom/server";
+import { renderToString } from "react-dom/server";
 import { ServerRouter } from "react-router";
-import { createReadableStreamFromReadable } from "@react-router/node";
-import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
-
-export const streamTimeout = 5000;
 
 export default async function handleRequest(
   request,
@@ -14,38 +9,22 @@ export default async function handleRequest(
   reactRouterContext,
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
-  const userAgent = request.headers.get("user-agent");
-  const callbackName = isbot(userAgent ?? "") ? "onAllReady" : "onShellReady";
 
-  return new Promise((resolve, reject) => {
-    const { pipe, abort } = renderToPipeableStream(
-      <ServerRouter context={reactRouterContext} url={request.url} />,
-      {
-        [callbackName]: () => {
-          const body = new PassThrough();
-          const stream = createReadableStreamFromReadable(body);
-
-          responseHeaders.set("Content-Type", "text/html");
-          resolve(
-            new Response(stream, {
-              headers: responseHeaders,
-              status: responseStatusCode,
-            }),
-          );
-          pipe(body);
-        },
-        onShellError(error) {
-          reject(error);
-        },
-        onError(error) {
-          responseStatusCode = 500;
-          console.error(error);
-        },
-      },
+  let html;
+  try {
+    html = renderToString(
+      <ServerRouter context={reactRouterContext} url={request.url} />
     );
+  } catch (error) {
+    console.error("Error rendering:", error);
+    responseStatusCode = 500;
+    html = "Internal Server Error";
+  }
 
-    // Automatically timeout the React renderer after 6 seconds, which ensures
-    // React has enough time to flush down the rejected boundary contents
-    setTimeout(abort, streamTimeout + 1000);
+  responseHeaders.set("Content-Type", "text/html");
+
+  return new Response(html, {
+    headers: responseHeaders,
+    status: responseStatusCode,
   });
 }
