@@ -2,7 +2,7 @@
 
 client_id = "48d42da3c21b03045ccadaf480a58cf8"
 name = "Random product generator"
-application_url = "https://example.com"
+application_url = "https://random-product-generator-2475.onrender.com"
 embedded = true
 
 [build]
@@ -24,4 +24,8 @@ api_version = "2026-01"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+    "https://random-product-generator-2475.onrender.com/auth/callback",
+    "https://random-product-generator-2475.onrender.com/auth/shopify/callback",
+    "https://random-product-generator-2475.onrender.com/api/auth/callback"
+]
